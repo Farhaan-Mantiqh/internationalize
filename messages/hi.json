@@ -1,0 +1,11 @@
+{
+  "Index": {
+    "title": "Ghar",
+    "description": "This is the home page.",
+    "navigateToAbout": "Navigate to about"
+  },
+  "About": {
+    "title": "Bara Mai",
+    "description": "This is the about page."
+  }
+}

@@ -1,26 +1,37 @@
-import {getRequestConfig} from 'next-intl/server';
+import {NextResponse} from 'next/server';
 import requestIp from '@supercharge/request-ip';
 
-export default getRequestConfig(async ({request}) => {
+export function middleware(request: Request) {
+  // Type the request explicitly as NextRequest if needed (if Vercel causes issues with typing)
   const ip = requestIp.getClientIp(request) ?? '';
-  const response = await fetch(`https://ipapi.co/${ip}/json/`);
-  const data = await response.json();
 
-  const country = data?.country ?? 'Unknown';
+  const geoApiUrl = `https://ipapi.co/${ip}/json/`;
 
-  console.log(`Visitor IP: ${ip}, Country: ${country}`);
+  return fetch(geoApiUrl)
+    .then((res) => res.json())
+    .then((data) => {
+      const country = data?.country ?? 'Unknown';
 
-  // Logic for choosing locale based on country
-  let locale = 'en'; // default to 'en'
+      let locale = 'en'; // default locale
+      if (country === 'IN') {
+        locale = 'hi'; // For India, load 'hi.json'
+      } else if (country === 'US') {
+        locale = 'en'; // For US, load 'en.json'
+      }
 
-  if (country === 'IN') {
-    locale = 'hi'; // For India, load 'hi.json'
-  } else if (country === 'US') {
-    locale = 'en'; // For US, load 'en.json'
-  }
+      // Set locale in cookies
+      const response = NextResponse.next();
+      response.cookies.set('locale', locale);
+      return response;
+    })
+    .catch(() => {
+      // Default fallback
+      const response = NextResponse.next();
+      response.cookies.set('locale', 'en'); // default fallback
+      return response;
+    });
+}
 
-  return {
-    locale,
-    messages: (await import(`../../messages/${locale}.json`)).default
-  };
-});
+export const config = {
+  matcher: ['/'] // Adjust to match the paths you want to intercept
+};
